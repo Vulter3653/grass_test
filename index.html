@@ -3,12 +3,61 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hello World</title>
+  <title>GitHub Grass Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <link href='/style.css' rel='stylesheet'>
 </head>
 <body>
-  <h1>Hello, world!</h1>
-  <button onclick="console.log('hello');">Press me</button>
+  <div class="app-container">
+    <header>
+      <div class="header-content">
+        <h1>Grass <span>Tracker</span></h1>
+        <p>Monitor GitHub contribution status at a glance.</p>
+      </div>
+      <form id="add-user-form" class="search-box">
+        <input type="text" id="username-input" placeholder="Enter GitHub username..." required autocomplete="off">
+        <button type="submit" aria-label="Add User">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </form>
+    </header>
+
+    <main id="user-grid" class="user-grid">
+      <!-- User cards will be injected here by JavaScript -->
+      <div id="empty-state" class="empty-state">
+        <div class="empty-icon">🌱</div>
+        <h2>No users tracked yet</h2>
+        <p>Enter a GitHub username above to start tracking their contributions.</p>
+      </div>
+    </main>
+
+    <footer>
+      <p>&copy; 2026 Grass Tracker. Built with passion.</p>
+    </footer>
+  </div>
+
+  <template id="user-card-template">
+    <article class="user-card">
+      <div class="card-header">
+        <div class="user-info">
+          <img class="user-avatar" src="" alt="Avatar">
+          <h3 class="username"></h3>
+        </div>
+        <button class="remove-btn" aria-label="Remove user">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
+      </div>
+      <div class="grass-container">
+        <img class="grass-chart" src="" alt="Contribution Graph" loading="lazy">
+      </div>
+      <div class="card-footer">
+        <a class="github-link" href="" target="_blank" rel="noopener noreferrer">View Profile</a>
+      </div>
+    </article>
+  </template>
+
   <script defer type="text/javascript" src="/main.js"></script>
 </body>
 </html>
