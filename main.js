@@ -1,12 +1,12 @@
-// Firebase configuration - In a real app, these would be your actual project credentials
-// For this prototype, we'll assume the environment provides them or they are managed via Firebase Studio
+// Firebase configuration from user's project
 const firebaseConfig = {
-  apiKey: "AIzaSy...", // Placeholder
-  authDomain: "grass-tracker.firebaseapp.com",
-  projectId: "grass-tracker",
-  storageBucket: "grass-tracker.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
+  apiKey: "AIzaSyAbopKaQTLQCaS-JUU4XD7rCw8cxFqLoXQ",
+  authDomain: "grass-test-117aa.firebaseapp.com",
+  projectId: "grass-test-117aa",
+  storageBucket: "grass-test-117aa.firebasestorage.app",
+  messagingSenderId: "671085921274",
+  appId: "1:671085921274:web:fa8589743b927b7db35a43",
+  measurementId: "G-30HJKE03JH"
 };
 
 // Initialize Firebase
