@@ -10,9 +10,16 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
+try {
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+    console.log("Firebase initialized successfully");
+  }
+} catch (error) {
+  console.error("Firebase initialization error:", error);
+  alert("Firebase 초기화 오류: " + error.message);
 }
+
 const db = firebase.firestore();
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -22,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const emptyState = document.getElementById('empty-state');
   const userCardTemplate = document.getElementById('user-card-template');
 
-  // Generate or retrieve a persistent visitorId for this browser
   let visitorId = localStorage.getItem('visitorId');
   if (!visitorId) {
     visitorId = 'user_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
@@ -30,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const renderUsers = (usersData) => {
-    // Clear existing cards (except empty state)
     const cards = userGrid.querySelectorAll('.user-card');
     cards.forEach(card => card.remove());
 
@@ -41,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     emptyState.style.display = 'none';
 
-    // Sort by creation date (newest first)
     usersData.sort((a, b) => {
       const timeA = a.createdAt?.seconds || 0;
       const timeB = b.createdAt?.seconds || 0;
@@ -59,21 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const removeBtn = cardClone.querySelector('.remove-btn');
 
       avatarImg.src = `https://github.com/${username}.png`;
-      avatarImg.alt = `${username}'s avatar`;
       usernameDisplay.textContent = username;
-      
-      // Using ghchart.rshah.org for the contribution graph
       grassChart.src = `https://ghchart.rshah.org/39d353/${username}`;
-      grassChart.alt = `${username}'s GitHub contribution graph`;
-      
       githubLink.href = `https://github.com/${username}`;
 
-      // Only show remove button if the visitorId matches the person who added it
       if (addedBy === visitorId) {
         removeBtn.style.display = 'flex';
-        removeBtn.addEventListener('click', () => {
-          removeUser(id);
-        });
+        removeBtn.addEventListener('click', () => removeUser(id));
       }
 
       userGrid.appendChild(cardClone);
@@ -84,14 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const cleanUsername = username.trim().toLowerCase();
     if (!cleanUsername) return;
     
+    console.log("Adding user to Firestore:", cleanUsername);
     try {
-      // Check if user already exists in Firestore to prevent duplicates
       const querySnapshot = await db.collection('grass_trackers')
         .where('username', '==', cleanUsername)
         .get();
 
       if (!querySnapshot.empty) {
-        alert('This GitHub user is already being tracked!');
+        alert('이미 등록된 유저입니다.');
         return;
       }
 
@@ -101,20 +97,22 @@ document.addEventListener('DOMContentLoaded', () => {
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       
+      console.log("User added successfully to Firestore");
       usernameInput.value = '';
     } catch (error) {
-      console.error("Error adding user: ", error);
-      alert("Failed to add user. Check console for details.");
+      console.error("Firestore Error (Add):", error);
+      alert("데이터 저장 실패! Firebase 콘솔에서 Firestore를 생성했는지, 보안 규칙을 '테스트 모드'로 설정했는지 확인해주세요.\n\n에러 내용: " + error.message);
     }
   };
 
   const removeUser = async (docId) => {
-    if (confirm('Are you sure you want to remove this user?')) {
+    if (confirm('유저를 삭제하시겠습니까?')) {
       try {
         await db.collection('grass_trackers').doc(docId).delete();
+        console.log("User deleted from Firestore");
       } catch (error) {
-        console.error("Error removing user: ", error);
-        alert("Failed to remove user.");
+        console.error("Firestore Error (Delete):", error);
+        alert("삭제 실패: " + error.message);
       }
     }
   };
@@ -124,14 +122,17 @@ document.addEventListener('DOMContentLoaded', () => {
     addUser(usernameInput.value);
   });
 
-  // Real-time listener for Firestore updates
   db.collection('grass_trackers').onSnapshot((snapshot) => {
+    console.log("Firestore data updated, count:", snapshot.size);
     const usersData = [];
     snapshot.forEach((doc) => {
       usersData.push({ id: doc.id, ...doc.data() });
     });
     renderUsers(usersData);
   }, (error) => {
-    console.error("Firestore snapshot error: ", error);
+    console.error("Firestore Snapshot Error:", error);
+    if (error.code === 'permission-denied') {
+      alert("Firebase 보안 규칙에 의해 접근이 거부되었습니다. Firestore 규칙을 '테스트 모드'로 수정해주세요.");
+    }
   });
 });
