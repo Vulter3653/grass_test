@@ -1,3 +1,20 @@
+// Firebase configuration - In a real app, these would be your actual project credentials
+// For this prototype, we'll assume the environment provides them or they are managed via Firebase Studio
+const firebaseConfig = {
+  apiKey: "AIzaSy...", // Placeholder
+  authDomain: "grass-tracker.firebaseapp.com",
+  projectId: "grass-tracker",
+  storageBucket: "grass-tracker.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef"
+};
+
+// Initialize Firebase
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
+
 document.addEventListener('DOMContentLoaded', () => {
   const userForm = document.getElementById('add-user-form');
   const usernameInput = document.getElementById('username-input');
@@ -5,27 +22,35 @@ document.addEventListener('DOMContentLoaded', () => {
   const emptyState = document.getElementById('empty-state');
   const userCardTemplate = document.getElementById('user-card-template');
 
-  let trackedUsers = JSON.parse(localStorage.getItem('trackedUsers')) || [];
+  // Generate or retrieve a persistent visitorId for this browser
+  let visitorId = localStorage.getItem('visitorId');
+  if (!visitorId) {
+    visitorId = 'user_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+    localStorage.setItem('visitorId', visitorId);
+  }
 
-  const saveUsers = () => {
-    localStorage.setItem('trackedUsers', JSON.stringify(trackedUsers));
-  };
-
-  const renderUsers = () => {
+  const renderUsers = (usersData) => {
     // Clear existing cards (except empty state)
     const cards = userGrid.querySelectorAll('.user-card');
     cards.forEach(card => card.remove());
 
-    if (trackedUsers.length === 0) {
+    if (usersData.length === 0) {
       emptyState.style.display = 'block';
       return;
     }
 
     emptyState.style.display = 'none';
 
-    trackedUsers.forEach(username => {
+    // Sort by creation date (newest first)
+    usersData.sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    });
+
+    usersData.forEach(user => {
+      const { username, addedBy, id } = user;
       const cardClone = userCardTemplate.content.cloneNode(true);
-      const cardElement = cardClone.querySelector('.user-card');
       
       const avatarImg = cardClone.querySelector('.user-avatar');
       const usernameDisplay = cardClone.querySelector('.username');
@@ -38,39 +63,60 @@ document.addEventListener('DOMContentLoaded', () => {
       usernameDisplay.textContent = username;
       
       // Using ghchart.rshah.org for the contribution graph
-      // Theme color: 39d353 (GitHub green)
       grassChart.src = `https://ghchart.rshah.org/39d353/${username}`;
       grassChart.alt = `${username}'s GitHub contribution graph`;
       
       githubLink.href = `https://github.com/${username}`;
 
-      removeBtn.addEventListener('click', () => {
-        removeUser(username);
-      });
+      // Only show remove button if the visitorId matches the person who added it
+      if (addedBy === visitorId) {
+        removeBtn.style.display = 'flex';
+        removeBtn.addEventListener('click', () => {
+          removeUser(id);
+        });
+      }
 
       userGrid.appendChild(cardClone);
     });
   };
 
-  const addUser = (username) => {
+  const addUser = async (username) => {
     const cleanUsername = username.trim().toLowerCase();
     if (!cleanUsername) return;
     
-    if (trackedUsers.includes(cleanUsername)) {
-      alert('User is already being tracked!');
-      return;
-    }
+    try {
+      // Check if user already exists in Firestore to prevent duplicates
+      const querySnapshot = await db.collection('grass_trackers')
+        .where('username', '==', cleanUsername)
+        .get();
 
-    trackedUsers.push(cleanUsername);
-    saveUsers();
-    renderUsers();
-    usernameInput.value = '';
+      if (!querySnapshot.empty) {
+        alert('This GitHub user is already being tracked!');
+        return;
+      }
+
+      await db.collection('grass_trackers').add({
+        username: cleanUsername,
+        addedBy: visitorId,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      
+      usernameInput.value = '';
+    } catch (error) {
+      console.error("Error adding user: ", error);
+      alert("Failed to add user. Check console for details.");
+    }
   };
 
-  const removeUser = (username) => {
-    trackedUsers = trackedUsers.filter(u => u !== username);
-    saveUsers();
-    renderUsers();
+  const removeUser = async (docId) => {
+    if (confirm('Are you sure you want to remove this user?')) {
+      try {
+        await db.collection('grass_trackers').doc(docId).delete();
+      } catch (error) {
+        console.error("Error removing user: ", error);
+        alert("Failed to remove user.");
+      }
+    }
   };
 
   userForm.addEventListener('submit', (e) => {
@@ -78,6 +124,14 @@ document.addEventListener('DOMContentLoaded', () => {
     addUser(usernameInput.value);
   });
 
-  // Initial render
-  renderUsers();
+  // Real-time listener for Firestore updates
+  db.collection('grass_trackers').onSnapshot((snapshot) => {
+    const usersData = [];
+    snapshot.forEach((doc) => {
+      usersData.push({ id: doc.id, ...doc.data() });
+    });
+    renderUsers(usersData);
+  }, (error) => {
+    console.error("Firestore snapshot error: ", error);
+  });
 });

@@ -16,16 +16,20 @@ The GitHub Grass Tracker is a web application designed to monitor the contributi
 
 ## Features
 - **User Management:** Add and remove GitHub usernames.
-- **Persistence:** Save the list of tracked users in the browser's LocalStorage.
+- **Persistence:** Synchronize the list of tracked users across all devices using Firebase Firestore.
+- **Access Control:** "Delete Only if Added By Me" logic using a persistent browser-specific `visitorId`.
 - **Visual Activity:** Display the GitHub contribution graph for each user using the `ghchart` API.
-- **Real-time Updates:** Input validation and immediate rendering upon adding a new user.
+- **Real-time Updates:** Automatic dashboard refresh when any user adds/removes a GitHub profile.
 
 ## Implementation Plan (Current Task)
-1. **HTML Structure:** Define the main dashboard layout, search/add bar, and container for user cards.
-2. **CSS Styling:** Implement the modern aesthetic defined in `GEMINI.md`, including `oklch` colors, `:has()` selectors, and responsive design.
-3. **JavaScript Logic:**
-   - Handle form submission for adding users.
-   - Manage the list of users in `localStorage`.
-   - Function to render user cards with their respective contribution charts.
-   - Delete functionality for individual users.
-4. **Validation:** Ensure the UI works across devices and handles errors (e.g., empty inputs).
+1. **Firebase Integration:**
+   - Link Firebase SDK (App, Firestore) in `index.html`.
+   - Initialize Firebase in `main.js` with project configuration.
+2. **Visitor Identification:**
+   - Generate and store a unique `visitorId` in `localStorage` to identify the browser session.
+3. **Firestore Logic:**
+   - Replace `localStorage` tracking with Firestore collection (`grass_trackers`).
+   - Store documents with `{ username, addedBy, createdAt }`.
+4. **UI Updates:**
+   - Only show the "Remove" button if the `visitorId` matches the `addedBy` field.
+   - Real-time listener using `onSnapshot` for immediate UI updates across all clients.
